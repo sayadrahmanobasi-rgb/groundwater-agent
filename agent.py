@@ -1,12 +1,12 @@
 from pathlib import Path
 import requests
 import os
+import subprocess
 
 def ask_online_ai(message):
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         return "API key ونه موندل شو."
-
     try:
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -22,8 +22,21 @@ def ask_online_ai(message):
     except Exception as e:
         return f"تېروتنه: {e}"
 
+def git_sync():
+    try:
+        subprocess.run(["git", "add", "."], check=True)
+        result = subprocess.run(
+            ["git", "commit", "-m", "Agent خودکار sync"],
+            capture_output=True, text=True
+        )
+        if "nothing to commit" in result.stdout:
+            return "هېڅ نوی بدلون نشته."
+        return "بدلونونه خوندي شول (Git commit ترسره شو)."
+    except Exception as e:
+        return f"تېروتنه: {e}"
+
 print("Offline Hybrid Agent")
-print("امرونه: جوړ کړه، ولیکه، ولوله، پوښتنه، exit")
+print("امرونه: جوړ کړه، ولیکه، ولوله، پوښتنه، sync، exit")
 
 while True:
     command = input("ته: ").strip()
@@ -56,6 +69,9 @@ while True:
     elif command.startswith("پوښتنه "):
         msg = command[7:].strip()
         print(ask_online_ai(msg))
+
+    elif command.lower() == "sync":
+        print(git_sync())
 
     else:
         print("ناپېژندل شوی امر.")
