@@ -35,8 +35,35 @@ def git_sync():
     except Exception as e:
         return f"تېروتنه: {e}"
 
+def get_water_data(lat, lon):
+    try:
+        url = (
+            "https://power.larc.nasa.gov/api/temporal/climatology/point"
+            f"?parameters=PRECTOTCORR&community=AG&longitude={lon}&latitude={lat}&format=JSON"
+        )
+        response = requests.get(url, timeout=15)
+        data = response.json()
+        rain = data["properties"]["parameter"]["PRECTOTCORR"]
+        annual = rain["ANN"]
+
+        if annual >= 2.5:
+            level = "لوړ احتمال"
+        elif annual >= 1.2:
+            level = "منځنی احتمال"
+        else:
+            level = "ټیټ احتمال"
+
+        result = f"د دې ځای اوسط کلنی باران: {annual} mm/ورځ\n"
+        result += f"د اوبو موندلو عمومي احتمال: {level}\n"
+        result += "میاشتنی باران (mm/ورځ):\n"
+        for month in ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]:
+            result += f"  {month}: {rain[month]}\n"
+        return result
+    except Exception as e:
+        return f"تېروتنه: {e}"
+
 print("Offline Hybrid Agent")
-print("امرونه: جوړ کړه، ولیکه، ولوله، پوښتنه، sync، exit")
+print("امرونه: جوړ کړه، ولیکه، ولوله، پوښتنه، sync، اوبه، exit")
 
 while True:
     command = input("ته: ").strip()
@@ -72,6 +99,17 @@ while True:
 
     elif command.lower() == "sync":
         print(git_sync())
+
+    elif command.startswith("اوبه "):
+        parts = command[5:].strip().split(" ")
+        if len(parts) < 2:
+            print("فورمېټ: اوبه <latitude> <longitude>")
+        else:
+            try:
+                lat, lon = parts[0], parts[1]
+                print(get_water_data(lat, lon))
+            except Exception as e:
+                print(f"تېروتنه: {e}")
 
     else:
         print("ناپېژندل شوی امر.")
