@@ -35,6 +35,21 @@ def git_sync():
     except Exception as e:
         return f"تېروتنه: {e}"
 
+def find_location(place_name):
+    try:
+        url = f"https://nominatim.openstreetmap.org/search?q={place_name}&format=json&limit=1"
+        headers = {"User-Agent": "MyAgent/1.0"}
+        response = requests.get(url, headers=headers, timeout=15)
+        data = response.json()
+        if not data:
+            return None, None, None
+        lat = data[0]["lat"]
+        lon = data[0]["lon"]
+        display_name = data[0]["display_name"]
+        return lat, lon, display_name
+    except Exception:
+        return None, None, None
+
 def get_water_data(lat, lon):
     try:
         url = (
@@ -53,7 +68,7 @@ def get_water_data(lat, lon):
         else:
             level = "ټیټ احتمال"
 
-        result = f"د دې ځای اوسط کلنی باران: {annual} mm/ورځ\n"
+        result = f"اوسط کلنی باران: {annual} mm/ورځ\n"
         result += f"د اوبو موندلو عمومي احتمال: {level}\n"
         result += "میاشتنی باران (mm/ورځ):\n"
         for month in ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]:
@@ -63,7 +78,7 @@ def get_water_data(lat, lon):
         return f"تېروتنه: {e}"
 
 print("Offline Hybrid Agent")
-print("امرونه: جوړ کړه، ولیکه، ولوله، پوښتنه، sync، اوبه، exit")
+print("امرونه: جوړ کړه، ولیکه، ولوله، پوښتنه، sync، اوبه، ځای، exit")
 
 while True:
     command = input("ته: ").strip()
@@ -110,6 +125,17 @@ while True:
                 print(get_water_data(lat, lon))
             except Exception as e:
                 print(f"تېروتنه: {e}")
+
+    elif command.startswith("ځای "):
+        place = command[4:].strip()
+        lat, lon, display_name = find_location(place)
+        if lat is None:
+            print("دا ځای ونه موندل شو.")
+        else:
+            print(f"ومونده: {display_name}")
+            print(f"GPS: {lat}, {lon}")
+            print("---")
+            print(get_water_data(lat, lon))
 
     else:
         print("ناپېژندل شوی امر.")
