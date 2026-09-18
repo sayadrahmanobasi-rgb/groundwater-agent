@@ -3,7 +3,9 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
-import requests
+import urllib.request
+import urllib.parse
+import json
 
 class WaterFinderApp(App):
     def build(self):
@@ -18,6 +20,11 @@ class WaterFinderApp(App):
         self.layout.add_widget(self.result_label)
         return self.layout
 
+    def fetch_json(self, url, headers=None):
+        req = urllib.request.Request(url, headers=headers or {})
+        with urllib.request.urlopen(req, timeout=15) as response:
+            return json.loads(response.read().decode())
+
     def search_water(self, instance):
         place = self.place_input.text.strip()
         if not place:
@@ -25,10 +32,9 @@ class WaterFinderApp(App):
             return
         self.result_label.text = "پلټنه روانه ده..."
         try:
-            url = f"https://nominatim.openstreetmap.org/search?q={place}&format=json&limit=1"
-            headers = {"User-Agent": "WaterFinderApp/1.0"}
-            r = requests.get(url, headers=headers, timeout=15)
-            data = r.json()
+            q = urllib.parse.quote(place)
+            url = f"https://nominatim.openstreetmap.org/search?q={q}&format=json&limit=1"
+            data = self.fetch_json(url, headers={"User-Agent": "WaterFinderApp/1.0"})
             if not data:
                 self.result_label.text = "دا ځای ونه موندل شو."
                 return
@@ -38,8 +44,7 @@ class WaterFinderApp(App):
                 "https://power.larc.nasa.gov/api/temporal/climatology/point"
                 f"?parameters=PRECTOTCORR&community=AG&longitude={lon}&latitude={lat}&format=JSON"
             )
-            wr = requests.get(water_url, timeout=15)
-            wdata = wr.json()
+            wdata = self.fetch_json(water_url)
             annual = wdata["properties"]["parameter"]["PRECTOTCORR"]["ANN"]
 
             if annual >= 2.5:
